@@ -1,0 +1,16 @@
+{
+  "name": "audio-metadata-extractor",
+  "version": "1.0.0",
+  "description": "Audio metadata extraction API and Frontend",
+  "main": "index.js",
+  "scripts": {
+    "start": "echo 'Run locally using a static server or deploy to Vercel'"
+  },
+  "dependencies": {
+    "music-metadata": "^7.14.0",
+    "formidable": "^3.5.1"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}

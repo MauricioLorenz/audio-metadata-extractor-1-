@@ -1,0 +1,5 @@
+{
+  "name": "Audio Metadata Extractor",
+  "description": "A tool to analyze audio files (WAV, MP3, etc.) using the music-metadata library to extract technical metadata deterministically. Includes code snippets for backend integration.",
+  "requestFramePermissions": []
+}
