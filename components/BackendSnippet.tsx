@@ -2,107 +2,105 @@ import React, { useState } from 'react';
 
 export const BackendSnippet: React.FC = () => {
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'node' | 'curl' | 'js'>('curl');
 
-  const snippet = `
+  const currentUrl = typeof window !== 'undefined' ? window.location.origin : 'https://your-app.vercel.app';
+  const apiUrl = `${currentUrl}/api/analyze`;
+
+  const snippets = {
+    curl: `
+curl -X POST "${apiUrl}" \\
+  -F "file=@/path/to/your/audio.wav"
+    `.trim(),
+    js: `
+const formData = new FormData();
+formData.append('file', audioFile); // File object from input
+
+const response = await fetch("${apiUrl}", {
+  method: 'POST',
+  body: formData
+});
+
+const metadata = await response.json();
+console.log(metadata);
+    `.trim(),
+    node: `
 /**
  * BACKEND NODE.JS (Express/Cloud Function/Lambda)
- * 
- * Dependencies:
- * "music-metadata": "^7.14.0",
- * "multer": "^1.4.5-lts.1",
- * "cors": "^2.8.5"
+ * Dependencies: "music-metadata", "multer", "cors"
  */
-
 const express = require('express');
-const cors = require('cors');
 const multer = require('multer');
 const mm = require('music-metadata');
-
 const app = express();
-// Enable CORS for all routes (Critical for browser clients)
-app.use(cors({ origin: true }));
 
-// Configure Multer to store file in memory temporarily
 const upload = multer({ storage: multer.memoryStorage() });
 
-// POST endpoint expecting a file with key 'file'
 app.post('/analyze-audio', upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-
-    // req.file.buffer contains the binary data
-    const fileBuffer = req.file.buffer;
-    const mimeType = req.file.mimetype;
-    const originalName = req.file.originalname;
-
-    // Parse metadata using music-metadata
-    const metadata = await mm.parseBuffer(fileBuffer, mimeType);
-    const format = metadata.format;
-
-    const result = {
-      filename: originalName,
-      mimeType: mimeType,
-      sizeBytes: req.file.size,
-      format: format.container,
-      durationSeconds: format.duration,
-      bitrateKbps: format.bitrate ? Math.round(format.bitrate / 1000) : 0,
-      sampleRateHz: format.sampleRate,
-      channels: format.numberOfChannels,
-      encoding: format.codec || format.codecProfile,
-      isLossless: format.lossless
-    };
-
-    return res.json(result);
-
+    const metadata = await mm.parseBuffer(req.file.buffer, req.file.mimetype);
+    res.json({
+      filename: req.file.originalname,
+      format: metadata.format.container,
+      duration: metadata.format.duration,
+      bitrate: metadata.format.bitrate,
+      sampleRate: metadata.format.sampleRate
+    });
   } catch (error) {
-    console.error("Processing error:", error);
-    return res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
-  `.trim();
+    `.trim()
+  };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(snippet);
+    navigator.clipboard.writeText(snippets[activeTab]);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="mt-8 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden">
+    <div className="mt-8 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-2xl">
       <div className="p-4 border-b border-slate-700 bg-slate-950 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-white font-semibold">Backend Code Example (Node.js)</h3>
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-primary-400">
+              <path fillRule="evenodd" d="M4.25 2A2.25 2.25 0 0 0 2 4.25v11.5A2.25 2.25 0 0 0 4.25 18h11.5A2.25 2.25 0 0 0 18 15.75V4.25A2.25 2.25 0 0 0 15.75 2H4.25Zm4.03 6.22a.75.75 0 0 0-1.06 1.06L9.44 11l-2.22 2.22a.75.75 0 1 0 1.06 1.06l2.75-2.75a.75.75 0 0 0 0-1.06l-2.75-2.75Zm4.47 3.53a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+            </svg>
+            API Integration Guide
+          </h3>
           <p className="text-slate-400 text-sm">
-            Example using Express + CORS + Multer.
+            Use this endpoint from other services like n8n, Python, or CURL.
           </p>
         </div>
+        <div className="flex gap-1 bg-slate-900 p-1 rounded-lg border border-slate-700">
+          {(['curl', 'js', 'node'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${activeTab === tab ? 'bg-primary-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="relative group">
         <button
           onClick={handleCopy}
-          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg border border-slate-600 transition-colors flex items-center gap-2 shrink-0"
+          className="absolute top-4 right-4 z-10 px-3 py-1.5 bg-slate-800/80 backdrop-blur-sm hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-600 transition-all opacity-0 group-hover:opacity-100 flex items-center gap-2"
         >
-          {copied ? (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-green-400">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-              </svg>
-              Copied!
-            </>
-          ) : (
-            <>
-               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
-              </svg>
-              Copy Node.js Snippet
-            </>
-          )}
+          {copied ? 'Copied!' : 'Copy'}
         </button>
-      </div>
-      <div className="p-0 overflow-hidden">
-        <pre className="p-4 text-sm font-mono text-slate-300 overflow-x-auto whitespace-pre leading-relaxed">
-          <code className="language-javascript">{snippet}</code>
+        <pre className="p-6 text-sm font-mono text-primary-300 overflow-x-auto whitespace-pre leading-relaxed bg-slate-950/50">
+          <code>{snippets[activeTab]}</code>
         </pre>
+      </div>
+      <div className="px-6 py-4 bg-slate-900/50 border-t border-slate-700">
+        <p className="text-xs text-slate-500 font-medium italic">
+          Tip: Send <code>multipart/form-data</code> with the file attached to the <code>file</code> key.
+        </p>
       </div>
     </div>
   );
